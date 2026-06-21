@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>코창 강화 시뮬레이터</title>
+<style>
+*{box-sizing:border-box}
+:root{
+  --bg:#020617;--card:#0f172a;--line:#1e293b;--text:#f8fafc;--muted:#94a3b8;
+  --gold:#facc15;--green:#22c55e;--pink:#ec4899;--sky:#38bdf8;--orange:#f59e0b;--red:#ef4444;
+}
+body{
+  margin:0;color:var(--text);
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:linear-gradient(180deg,#020617 0%,#050816 50%,#020617 100%);
+}
+.wrap{max-width:1280px;margin:0 auto;padding:18px}
+.title{text-align:center;font-size:36px;font-weight:1000;margin:12px 0 18px}
+.page{display:none}.page.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px;box-shadow:0 12px 28px rgba(0,0,0,.35)}
+h2,h3{margin:0 0 10px}
+.row{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid rgba(148,163,184,.12)}
+.row:last-child{border-bottom:0}
+.value{font-weight:1000;color:var(--gold)}
+.notice{min-height:24px;text-align:center;color:var(--gold);font-weight:900;margin-top:8px}
+button{width:100%;border:0;border-radius:12px;padding:13px 10px;margin:5px 0;color:#fff;font-weight:1000;font-size:15px;cursor:pointer;box-shadow:inset 0 -3px rgba(0,0,0,.28)}
+button:active{transform:translateY(1px)}
+.btnGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.btnGrid button{margin:0}
+.gray{background:linear-gradient(180deg,#64748b,#334155)}
+.blue{background:linear-gradient(180deg,#2563eb,#1e40af)}
+.green{background:linear-gradient(180deg,#22c55e,#15803d)}
+.pink{background:linear-gradient(180deg,#ec4899,#be185d)}
+.sky{background:linear-gradient(180deg,#38bdf8,#0284c7)}
+.orange{background:linear-gradient(180deg,#f59e0b,#b45309)}
+.red{background:linear-gradient(180deg,#ef4444,#b91c1c)}
+.dark{background:linear-gradient(180deg,#475569,#1e293b)}
+.summary{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#020617;border:1px solid var(--line);border-radius:14px;padding:12px}
+.stat .label{color:var(--muted);font-size:12px}
+.stat .num{font-size:18px;font-weight:1000;margin-top:4px}
+.menuGrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.menuBtn{font-size:22px;padding:26px}
+.desktopGrid{display:grid;grid-template-columns:420px 1fr;gap:16px;align-items:start}
+.sticky{position:sticky;top:16px}
+.backBtn{max-width:220px;margin-bottom:12px}
+.mcBox{background:#4b5563;border:4px solid #111827;border-top-color:#9ca3af;border-left-color:#9ca3af;border-right-color:#030712;border-bottom-color:#030712;padding:8px;border-radius:8px}
+.inv3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.inv2{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+.weaponInv{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.slot{aspect-ratio:1/1;background:linear-gradient(135deg,#4b5563,#1f2937);border:3px solid #111827;border-top-color:#cbd5e1;border-left-color:#cbd5e1;border-right-color:#030712;border-bottom-color:#030712;display:flex;align-items:center;justify-content:center;flex-direction:column;position:relative;font-weight:900;text-shadow:1px 1px #000;cursor:pointer;overflow:hidden}
+.weaponInv .slot{font-size:11px}
+.slot.active{outline:3px solid var(--gold);box-shadow:0 0 12px rgba(250,204,21,.75)}
+.slot.greenish{background:linear-gradient(135deg,#166534,#1f2937)}
+.slot.pinkish{background:linear-gradient(135deg,#be185d,#1f2937)}
+.slot.skyish{background:linear-gradient(135deg,#0284c7,#1f2937)}
+.slot.orangeish{background:linear-gradient(135deg,#b45309,#1f2937)}
+.icon{font-size:27px;line-height:1}
+.weaponInv .icon{font-size:22px}
+.sname{text-align:center;font-size:11px;margin-top:4px;line-height:1.15}
+.weaponInv .sname{font-size:9px}
+.count,.lv{position:absolute;right:3px;bottom:1px;color:var(--gold);font-size:12px}
+.empty{opacity:.24}
+.selectedBox{background:#020617;border:1px solid rgba(56,189,248,.18);border-radius:16px;padding:12px;text-align:center}
+.selected{font-size:32px;color:var(--gold);font-weight:1000;text-shadow:2px 2px #000}
+.options,.statsGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.opt{background:#020617;border:1px solid var(--line);border-radius:12px;padding:9px;display:flex;justify-content:space-between}
+.chat{height:520px;background:rgba(0,0,0,.72);border:2px solid rgba(255,255,255,.1);border-radius:12px;padding:10px;overflow:hidden;font-family:"Courier New",monospace;display:flex;flex-direction:column-reverse;gap:5px}
+.chatLine{background:rgba(0,0,0,.24);padding:5px 6px;font-size:14px;text-shadow:1px 1px #000}
+.success{color:#55ff55;font-weight:900}.fail{color:#ff5555;font-weight:900}.down{color:#ff5555;font-weight:900}.stay{color:#aaa;font-weight:900}.tag{color:#a5b4fc}
+.small{font-size:12px;color:#cbd5e1;line-height:1.5}
+@media(max-width:900px){
+  .desktopGrid{grid-template-columns:1fr}
+  .sticky{position:static}
+  .menuGrid{grid-template-columns:1fr}
+  .title{font-size:28px}
+  .chat{height:280px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">코창 강화 시뮬레이터</div>
+
+  <section id="mainPage" class="page active">
+    <section class="card">
+      <div class="summary">
+        <div class="stat"><div class="label">보유 전</div><div class="num" id="moneyMain">0전</div></div>
+        <div class="stat"><div class="label">사용한 전</div><div class="num" id="spentMain">0전</div></div>
+      </div>
+      <div class="btnGrid" style="margin-top:10px">
+        <button class="blue" onclick="addMoney(10000)">+1만전</button>
+        <button class="blue" onclick="addMoney(100000)">+10만전</button>
+        <button class="blue" onclick="addMoney(1000000)">+100만전</button>
+        <button class="red" onclick="resetAll()">초기화</button>
+      </div>
+    </section>
+
+    <div class="desktopGrid">
+      <section class="card">
+        <h3>장비 현황</h3>
+        <div id="statusList"></div>
+      </section>
+
+      <section class="card">
+        <h3>총 스탯</h3>
+        <div class="statsGrid" id="totalStats"></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <h3>메뉴</h3>
+      <div class="menuGrid">
+        <button class="green menuBtn" onclick="go('equip')">⚒️ 장비 재련</button>
+        <button class="sky menuBtn" onclick="go('weapon')">⚔️ 무기 강화</button>
+        <button class="orange menuBtn" onclick="go('shop')">🛒 상점</button>
+      </div>
+    </section>
+  </section>
+
+  <section id="equipPage" class="page">
+    <button class="dark backBtn" onclick="go('main')">← 메인 메뉴</button>
+    <div class="desktopGrid">
+      <div class="sticky">
+        <section class="card">
+          <h3>장비창</h3>
+          <div class="mcBox"><div class="inv2" id="equipInv"></div></div>
+        </section>
+
+        <section class="card">
+          <h3>현재 선택</h3>
+          <div class="selectedBox">
+            <div class="selected" id="equipSelected">투구 0강</div>
+            <div class="row"><span>성공 확률</span><span class="value" id="equipRateText">45%</span></div>
+            <div class="row"><span>비용</span><span class="value">3,000전</span></div>
+          </div>
+          <div class="notice" id="noticeEquip"></div>
+        </section>
+
+        <section class="card">
+          <h3>장비 재련</h3>
+          <button class="gray" onclick="refineEquip('normal')">일반 재련</button>
+          <button class="green" onclick="refineEquip('lucky')">행운제련석 재련 (+3%)</button>
+          <button class="pink" onclick="refineEquip('highLucky')">고급행운제련석 재련 (+7%)</button>
+          <button class="orange" onclick="useDrink()">강화주 사용 (+1%, 60초)</button>
+        </section>
+      </div>
+
+      <div>
+        <section class="card">
+          <h3>현재 옵션</h3>
+          <div class="options" id="equipOptions"></div>
+        </section>
+
+        <section class="card">
+          <h3>재련 재료</h3>
+          <div class="mcBox">
+            <div class="inv3">
+              <div class="slot greenish"><div class="icon">🍀</div><div class="sname">행운제련석</div><div class="count" id="luckyCntE">0</div></div>
+              <div class="slot pinkish"><div class="icon">✨</div><div class="sname">고급행운제련석</div><div class="count" id="highLuckyCntE">0</div></div>
+              <div class="slot orangeish"><div class="icon">🍶</div><div class="sname">강화주</div><div class="count" id="drinkCntE">0</div></div>
+            </div>
+          </div>
+          <div class="row"><span>강화주 효과</span><span class="value" id="drinkBuffE">꺼짐</span></div>
+        </section>
+
+        <section class="card">
+          <h3>강화 로그</h3>
+          <div class="chat" id="equipChat"></div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section id="weaponPage" class="page">
+    <button class="dark backBtn" onclick="go('main')">← 메인 메뉴</button>
+    <div class="desktopGrid">
+      <div class="sticky">
+        <section class="card">
+          <h3>무기 인벤토리</h3>
+          <div class="mcBox"><div class="weaponInv" id="weaponInv"></div></div>
+          <button class="blue" onclick="buyWeapon()">무기 구매 1000전</button>
+        </section>
+
+        <section class="card">
+          <h3>현재 선택</h3>
+          <div class="selectedBox">
+            <div class="selected" id="weaponSelected">무기 없음</div>
+            <div class="row"><span>성공 확률</span><span class="value" id="weaponRateText">없음</span></div>
+            <div class="row"><span>공격력</span><span class="value" id="weaponAtkText">없음</span></div>
+            <div class="row"><span>비용</span><span class="value">강화석 1개</span></div>
+          </div>
+          <div class="notice" id="noticeWeapon"></div>
+        </section>
+
+        <section class="card">
+          <h3>무기 강화</h3>
+          <button class="gray" onclick="enhanceWeapon('normal')">무기강화석 강화</button>
+          <button class="sky" onclick="enhanceWeapon('plus')">상급무기강화석 강화 (+5%)</button>
+          <button class="pink" onclick="enhanceWeapon('high')">고급무기강화석 강화 (+10%)</button>
+          <button class="orange" onclick="useDrink()">강화주 사용 (+1%, 60초)</button>
+        </section>
+      </div>
+
+      <div>
+        <section class="card">
+          <h3>무기 강화석</h3>
+          <div class="mcBox">
+            <div class="inv3">
+              <div class="slot"><div class="icon">🪨</div><div class="sname">무기강화석</div><div class="count" id="wStoneCnt">0</div></div>
+              <div class="slot skyish"><div class="icon">🔷</div><div class="sname">상급무기강화석</div><div class="count" id="wStonePlusCnt">0</div></div>
+              <div class="slot pinkish"><div class="icon">💎</div><div class="sname">고급무기강화석</div><div class="count" id="wStoneHighCnt">0</div></div>
+              <div class="slot orangeish"><div class="icon">🍶</div><div class="sname">강화주</div><div class="count" id="drinkCntW">0</div></div>
+            </div>
+          </div>
+          <div class="row"><span>강화주 효과</span><span class="value" id="drinkBuffW">꺼짐</span></div>
+        </section>
+
+        <section class="card">
+          <h3>강화 로그</h3>
+          <div class="chat" id="weaponChat"></div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section id="shopPage" class="page">
+    <button class="dark backBtn" onclick="go('main')">← 메인 메뉴</button>
+    <div class="desktopGrid">
+      <section class="card">
+        <h3>상점</h3>
+        <div class="summary">
+          <div class="stat"><div class="label">보유 전</div><div class="num" id="moneyShop">0전</div></div>
+          <div class="stat"><div class="label">사용한 전</div><div class="num" id="spentShop">0전</div></div>
+        </div>
+        <button class="blue" onclick="buyWeapon()">무기 구매 1000전</button>
+      </section>
+
+      <section class="card">
+        <h3>재료 지급</h3>
+        <div class="btnGrid">
+          <button class="green" onclick="addItem('lucky',5)">행운제련석 +5</button>
+          <button class="pink" onclick="addItem('highLucky',5)">고급행운제련석 +5</button>
+          <button class="gray" onclick="addItem('wStone',10)">무기강화석 +10</button>
+          <button class="sky" onclick="addItem('wStonePlus',1)">상급무기강화석 +1</button>
+          <button class="pink" onclick="addItem('wStoneHigh',1)">고급무기강화석 +1</button>
+          <button class="orange" onclick="addItem('drink',10)">강화주 +10</button>
+        </div>
+      </section>
+    </div>
+  </section>
+</div>
+
+<script>
+let page="main";
+const equipNames=[{name:"투구",icon:"⛑️"},{name:"갑옷",icon:"🛡️"},{name:"허리띠",icon:"▰"},{name:"신발",icon:"👢"}];
+let selectedEquip=0, selectedWeapon=0;
+let equip=[0,0,0,0], weapons=[];
+let money=0, spent=0;
+let items={lucky:0,highLucky:0,drink:0,wStone:0,wStonePlus:0,wStoneHigh:0};
+let drinkActive=false, drinkTimer=null, drinkEnd=0;
+let equipLogs=[], weaponLogs=[];
+const equipCost=3000, weaponBuyCost=1000;
+
+const equipOptions={
+0:{},1:{"체력":1},2:{"체력":2},3:{"체력":3,"운":2},4:{"체력":4,"운":2},
+5:{"내공":1,"체력":5,"운":2},6:{"내공":1,"체력":6,"운":4},7:{"내공":1,"체력":7,"운":4},
+8:{"내공":1,"체력":9,"운":4},9:{"내공":1,"체력":11,"공속":1,"운":4},
+10:{"내공":2,"체력":13,"공속":1,"운":4},11:{"내공":2,"체력":15,"공속":1,"운":4},
+12:{"내공":2,"회피":1,"체력":17,"공속":1,"운":4},13:{"내공":2,"회피":1,"체력":19,"공속":2,"운":4},
+14:{"내공":2,"회피":2,"체력":21,"공속":2,"운":4},15:{"내공":2,"회피":2,"체력":24,"공속":2,"운":4},
+16:{"내공":2,"회피":2,"체력":27,"공속":3,"운":4},17:{"공격력":1,"내공":2,"회피":2,"체력":33,"공속":3,"운":4},
+18:{"공격력":1,"내공":4,"회피":3,"체력":36,"공속":3,"운":4},19:{"공격력":1,"내공":4,"회피":3,"체력":45,"공속":3,"운":4},
+20:{"공격력":1,"내공":6,"회피":3,"체력":48,"공속":3,"운":4}
+};
+const weaponAtk={1:6,2:7,3:8,4:9,5:10,6:11,7:12,8:14,9:16,10:18,11:21,12:23};
+
+function fmt(n){return n.toLocaleString("ko-KR")}
+function go(p){page=p;render()}
+function addLog(type,t){let arr=type==="equip"?equipLogs:weaponLogs;arr.unshift(t);arr.splice(10)}
+function notice(type,t){const el=document.getElementById(type==="equip"?"noticeEquip":"noticeWeapon"); if(el) el.textContent=t}
+function equipRate(lv){if(lv<4)return 45;if(lv<7)return 40;if(lv<10)return 35;if(lv<13)return 30;if(lv<16)return 25;if(lv<20)return 20;return 0}
+function weaponRate(lv){return ({1:85,2:75,3:65,4:55,5:45,6:35,7:25,8:15,9:10,10:5,11:5})[lv]||0}
+function drinkBonus(){return drinkActive?1:0}
+function addMoney(n){money+=n;save();render()}
+function addItem(k,n){items[k]+=n;save();render()}
+
+function currentWeaponLv(){return weapons.length?weapons[selectedWeapon]:0}
+function totalStats(){
+  const stats={공격력:0,체력:0,내공:0,회피:0,공속:0,운:0};
+  equip.forEach(lv=>{
+    const opt=equipOptions[lv]||{};
+    Object.keys(opt).forEach(k=>stats[k]=(stats[k]||0)+opt[k]);
+  });
+  const wlv=currentWeaponLv();
+  if(wlv) stats["공격력"] += weaponAtk[wlv] || 0;
+  return stats;
+}
+
+function useDrink(){
+  if(items.drink<=0){notice(page==="weapon"?"weapon":"equip","강화주가 부족합니다.");return}
+  items.drink--; drinkActive=true; drinkEnd=Date.now()+60000;
+  if(drinkTimer)clearInterval(drinkTimer);
+  drinkTimer=setInterval(()=>{if(Date.now()>=drinkEnd){drinkActive=false;clearInterval(drinkTimer);drinkTimer=null;save();render()}else render()},1000);
+  addLog("equip","강화주를 사용했습니다. <span class='success'>(+1%)</span>");
+  addLog("weapon","강화주를 사용했습니다. <span class='success'>(+1%)</span>");
+  save(); render();
+}
+
+function buyWeapon(){
+  if(money<weaponBuyCost){notice("weapon","전이 부족합니다.");return}
+  if(weapons.length>=20){notice("weapon","무기 인벤토리가 가득 찼습니다.");return}
+  money-=weaponBuyCost; spent+=weaponBuyCost; weapons.push(1); selectedWeapon=weapons.length-1;
+  addLog("weapon","무기를 구매했습니다. <span class='success'>1강</span>");
+  save(); render();
+}
+
+function refineEquip(type){
+  let lv=equip[selectedEquip], name=equipNames[selectedEquip].name;
+  if(lv>=20){notice("equip","이미 최대 단계입니다.");return}
+  if(money<equipCost){notice("equip","전이 부족합니다.");return}
+  let bonus=drinkBonus();
+  if(type==="lucky"){if(items.lucky<=0){notice("equip","행운제련석이 부족합니다.");return}items.lucky--;bonus+=3}
+  if(type==="highLucky"){if(items.highLucky<=0){notice("equip","고급행운제련석이 부족합니다.");return}items.highLucky--;bonus+=7}
+  money-=equipCost; spent+=equipCost;
+  let before=lv, rate=equipRate(lv)+bonus;
+  if(Math.random()*100<rate){
+    lv++; equip[selectedEquip]=lv;
+    addLog("equip",`<span class="tag">[${name}]</span> 제련에 <span class="success">성공</span>했습니다. <span class="success">(↑)</span> ${lv}강`);
+    notice("equip",`${before}강 → ${lv}강`);
+  }else{
+    if(Math.random()*100<30){
+      addLog("equip",`<span class="tag">[${name}]</span> 제련에 <span class="fail">실패</span>했습니다. <span class="stay">(-)</span> ${lv}강`);
+      notice("equip","유지");
+    }else{
+      lv=Math.max(0,lv-1); equip[selectedEquip]=lv;
+      addLog("equip",`<span class="tag">[${name}]</span> 제련에 <span class="fail">실패</span>했습니다. <span class="down">(↓)</span> ${lv}강`);
+      notice("equip","하락");
+    }
+  }
+  save(); render();
+}
+
+function enhanceWeapon(type){
+  if(weapons.length===0){notice("weapon","보유 무기가 없습니다.");return}
+  let lv=weapons[selectedWeapon], name="무기 "+(selectedWeapon+1);
+  if(lv>=12){notice("weapon","이미 최대 단계입니다.");return}
+  let bonus=drinkBonus();
+  if(type==="normal"){if(items.wStone<=0){notice("weapon","무기강화석이 부족합니다.");return}items.wStone--}
+  if(type==="plus"){if(items.wStonePlus<=0){notice("weapon","상급무기강화석이 부족합니다.");return}items.wStonePlus--;bonus+=5}
+  if(type==="high"){if(items.wStoneHigh<=0){notice("weapon","고급무기강화석이 부족합니다.");return}items.wStoneHigh--;bonus+=10}
+  let before=lv, rate=weaponRate(lv)+bonus;
+  if(Math.random()*100<rate){
+    lv++; weapons[selectedWeapon]=lv;
+    addLog("weapon",`<span class="tag">[${name}]</span> 강화에 <span class="success">성공</span>했습니다. <span class="success">(↑)</span> ${lv}강`);
+    notice("weapon",`${before}강 → ${lv}강`);
+  }else{
+    let r=Math.random()*100;
+    if(before<=5){
+      if(r<30){
+        addLog("weapon",`<span class="tag">[${name}]</span> 강화에 <span class="fail">실패</span>했습니다. <span class="stay">(-)</span> ${lv}강`);
+        notice("weapon","유지");
+      }else{
+        lv=Math.max(1,lv-1); weapons[selectedWeapon]=lv;
+        addLog("weapon",`<span class="tag">[${name}]</span> 강화에 <span class="fail">실패</span>했습니다. <span class="down">(↓)</span> ${lv}강`);
+        notice("weapon","하락");
+      }
+    }else{
+      if(r<30){
+        lv=Math.max(1,lv-1); weapons[selectedWeapon]=lv;
+        addLog("weapon",`<span class="tag">[${name}]</span> 강화에 <span class="fail">실패</span>했습니다. <span class="down">(↓)</span> ${lv}강`);
+        notice("weapon","하락");
+      }else{
+        weapons.splice(selectedWeapon,1);
+        if(selectedWeapon>=weapons.length) selectedWeapon=Math.max(0,weapons.length-1);
+        addLog("weapon",`<span class="tag">[${name}]</span> 강화에 <span class="fail">실패</span>했습니다. <span class="fail">파괴</span>`);
+        notice("weapon","파괴");
+      }
+    }
+  }
+  save(); render();
+}
+
+function resetAll(){
+  selectedEquip=0; selectedWeapon=0; equip=[0,0,0,0]; weapons=[]; money=0; spent=0;
+  items={lucky:0,highLucky:0,drink:0,wStone:0,wStonePlus:0,wStoneHigh:0};
+  drinkActive=false; if(drinkTimer)clearInterval(drinkTimer); drinkTimer=null;
+  equipLogs=[]; weaponLogs=[]; localStorage.removeItem("kochangSimSave"); render();
+}
+
+function renderMain(){
+  document.getElementById("moneyMain").textContent=fmt(money)+"전";
+  document.getElementById("spentMain").textContent=fmt(spent)+"전";
+  document.getElementById("statusList").innerHTML=[
+    `<div class="row"><span>투구</span><span class="value">${equip[0]}강</span></div>`,
+    `<div class="row"><span>갑옷</span><span class="value">${equip[1]}강</span></div>`,
+    `<div class="row"><span>허리띠</span><span class="value">${equip[2]}강</span></div>`,
+    `<div class="row"><span>신발</span><span class="value">${equip[3]}강</span></div>`,
+    `<div class="row"><span>무기</span><span class="value">${weapons.length?weapons[selectedWeapon]+"강":"없음"}</span></div>`
+  ].join("");
+  const stats=totalStats();
+  const entries=Object.entries(stats).filter(([k,v])=>v>0);
+  document.getElementById("totalStats").innerHTML=entries.length
+    ? entries.map(([k,v])=>`<div class="opt"><span>${k}</span><b>+${v}</b></div>`).join("")
+    : `<div class="opt"><span>스탯</span><b>없음</b></div>`;
+}
+
+function renderEquip(){
+  document.getElementById("equipInv").innerHTML=equipNames.map((e,i)=>`
+    <div class="slot ${i===selectedEquip?'active':''}" onclick="selectedEquip=${i};render()">
+      <div class="icon">${e.icon}</div><div class="sname">${e.name}</div><div class="lv">${equip[i]}강</div>
+    </div>`).join("");
+  document.getElementById("luckyCntE").textContent=items.lucky;
+  document.getElementById("highLuckyCntE").textContent=items.highLucky;
+  document.getElementById("drinkCntE").textContent=items.drink;
+  let lv=equip[selectedEquip];
+  document.getElementById("equipSelected").textContent=`${equipNames[selectedEquip].name} ${lv}강`;
+  document.getElementById("equipRateText").textContent=lv>=20?"최대":(equipRate(lv)+drinkBonus())+"%";
+  const entries=Object.entries(equipOptions[lv]);
+  document.getElementById("equipOptions").innerHTML=entries.length
+    ? entries.map(([k,v])=>`<div class="opt"><span>${k}</span><b>+${v}</b></div>`).join("")
+    : `<div class="opt"><span>옵션</span><b>없음</b></div>`;
+  document.getElementById("equipChat").innerHTML=equipLogs.length
+    ? equipLogs.map(x=>`<div class="chatLine">${x}</div>`).join("")
+    : `<div class="chatLine small">아직 기록이 없습니다.</div>`;
+}
+
+function renderWeapon(){
+  let html="";
+  for(let i=0;i<20;i++){
+    html += i<weapons.length
+      ? `<div class="slot ${i===selectedWeapon?'active':''}" onclick="selectedWeapon=${i};render()"><div class="icon">⚔️</div><div class="sname">${i+1}</div><div class="lv">${weapons[i]}강</div></div>`
+      : `<div class="slot empty"><div class="icon">□</div></div>`;
+  }
+  document.getElementById("weaponInv").innerHTML=html;
+  document.getElementById("wStoneCnt").textContent=items.wStone;
+  document.getElementById("wStonePlusCnt").textContent=items.wStonePlus;
+  document.getElementById("wStoneHighCnt").textContent=items.wStoneHigh;
+  document.getElementById("drinkCntW").textContent=items.drink;
+  if(weapons.length){
+    let lv=weapons[selectedWeapon];
+    document.getElementById("weaponSelected").textContent=`무기 ${selectedWeapon+1} ${lv}강`;
+    document.getElementById("weaponRateText").textContent=lv>=12?"최대":(weaponRate(lv)+drinkBonus())+"%";
+    document.getElementById("weaponAtkText").textContent=`+${weaponAtk[lv]||0}`;
+  }else{
+    document.getElementById("weaponSelected").textContent="무기 없음";
+    document.getElementById("weaponRateText").textContent="없음";
+    document.getElementById("weaponAtkText").textContent="없음";
+  }
+  document.getElementById("weaponChat").innerHTML=weaponLogs.length
+    ? weaponLogs.map(x=>`<div class="chatLine">${x}</div>`).join("")
+    : `<div class="chatLine small">아직 기록이 없습니다.</div>`;
+}
+
+function renderShop(){
+  document.getElementById("moneyShop").textContent=fmt(money)+"전";
+  document.getElementById("spentShop").textContent=fmt(spent)+"전";
+}
+
+function renderDrink(){
+  let txt="꺼짐";
+  if(drinkActive) txt=`켜짐 ${Math.max(0,Math.ceil((drinkEnd-Date.now())/1000))}초`;
+  if(document.getElementById("drinkBuffE")) document.getElementById("drinkBuffE").textContent=txt;
+  if(document.getElementById("drinkBuffW")) document.getElementById("drinkBuffW").textContent=txt;
+}
+
+function render(){
+  document.getElementById("mainPage").classList.toggle("active",page==="main");
+  document.getElementById("equipPage").classList.toggle("active",page==="equip");
+  document.getElementById("weaponPage").classList.toggle("active",page==="weapon");
+  document.getElementById("shopPage").classList.toggle("active",page==="shop");
+  renderMain(); renderDrink(); renderEquip(); renderWeapon(); renderShop();
+}
+
+function save(){
+  localStorage.setItem("kochangSimSave",JSON.stringify({
+    selectedEquip,selectedWeapon,equip,weapons,money,spent,items,equipLogs,weaponLogs
+  }));
+}
+function load(){
+  const raw=localStorage.getItem("kochangSimSave");
+  if(!raw)return;
+  try{
+    const d=JSON.parse(raw);
+    selectedEquip=d.selectedEquip??0; selectedWeapon=d.selectedWeapon??0;
+    equip=d.equip??[0,0,0,0]; weapons=d.weapons??[];
+    money=d.money??0; spent=d.spent??0;
+    items=d.items??items; equipLogs=d.equipLogs??[]; weaponLogs=d.weaponLogs??[];
+    if(selectedWeapon>=weapons.length) selectedWeapon=Math.max(0,weapons.length-1);
+  }catch(e){}
+}
+load();
+render();
+</script>
+</body>
+</html>
